@@ -5,10 +5,17 @@
 package com.mycompany._libreria_4b;
 
 import eccezioni.*;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import utilita.Ordinatore;
+import utilita.TextFile;
 
 /**
  *
@@ -306,7 +313,148 @@ public class Scaffale implements Serializable
         
     }
     
+    public void esportaFileCSV()
+    {
+         try
+         {
+            String nomeFileCSV="volumi.csv";
+            TextFile f1 = new TextFile(nomeFileCSV,'W'); //Apro ill file in scrittura
+            String datiVolume;
+            for(int i=0;i<getNumRipiani();i++)
+            {
+                for(int j=0;j<getNumMaxLibri(i);j++)
+                {
+                    try 
+                    {
+                        Libro lib = getLibro(i, j);
+                        datiVolume=i+";"+j+";"+lib.getTitolo()+";"+lib.getAutore()+";"+lib.getNumeroPagine();
+                        f1.toFile(datiVolume);
+                    } 
+                    catch (EccezioneRipianoNonValido | EccezionePosizioneNonValida ex) 
+                    {
+                            //Non succederà mai
+                    }                              
+                    catch (EccezionePosizioneVuota ex) 
+                    {
+                            //non fare nulle, vai alla prossima posizione
+                    } 
+                    catch (FileException ex) 
+                    {
+                        //non succederà mai
+                        //mostra il messaggio dell'eccezione
+                        System.out.println(ex.toString());
+                    }
+                }
+            }
+            f1.closeFile();  //Tutti i volumi sono statoi scritti
+            System.out.println("Esportazione avvenuta correttamente.");
+        } 
+        catch (IOException ex) 
+        {
+            System.out.println("Impossibile accedere al file");
+        }
+    }
     
+    public void importaFileCSV()
+    {
+        String rigaLetta;
+        String[] datiVolume;
+        try 
+        {   
+            //Importa da file CSV
+            String nomeFileCSV="volumi.csv";
+            TextFile f1 = new TextFile(nomeFileCSV,'R');
+            int numeroPagine,ripiano, posizione;
+            String titolo,autore;
+            
+            do
+            {
+                try
+                {
+                    rigaLetta=f1.fromFile();
+                    datiVolume=rigaLetta.split(";");
+                    ripiano=Integer.parseInt(datiVolume[0]);
+                    posizione=Integer.parseInt(datiVolume[1]);
+                    titolo=datiVolume[2];
+                    autore=datiVolume[3];
+                    numeroPagine=Integer.parseInt(datiVolume[4]);
+                    Libro lib = new Libro(titolo,autore,numeroPagine);
+                    try 
+                    {
+                        setLibro(lib, ripiano, posizione);
+                    } 
+                    catch (EccezioneRipianoNonValido ex) 
+                    {
+                        System.out.println("Errore: ripiano "+ripiano+ " non corretto per il volume "+titolo);
+                    } 
+                    catch (EccezionePosizioneNonValida ex) 
+                    {
+                         System.out.println("Errore: posizione "+posizione+ " non corretta per il volume "+titolo);
+                    }
+                    catch (EccezionePosizioneOccupata ex) 
+                    {
+                         System.out.println("Nel ripiano  "+ripiano+ " e posizione "+posizione+" è già presente un volume. Il volume "+titolo+ " non sarà posizionato nello scaffale.");
+                    }
+                }
+                catch (FileException ex) 
+                {
+                    //fine del file
+                    f1.closeFile();
+                    System.out.println("Fine operazione di caricamento");
+                    break;
+                }
+            }while(true);                
+        } 
+        catch (IOException ex) 
+        {
+            System.out.println("Impossibile accedere al file!");
+        } 
+    }
+    
+    public void serializzazione(Scaffale s1)
+    {
+        try 
+        {
+            String nomeFileBinario="scaffale.bin";
+            ObjectOutputStream writer=new ObjectOutputStream(new FileOutputStream(nomeFileBinario));
+            writer.writeObject(s1);
+            writer.flush();
+            writer.close();
+            System.out.println("Salvataggio avvenuto correttamente");
+        } 
+        catch (FileNotFoundException ex) 
+        {
+            System.out.println("File non trovato");
+        } 
+        catch (IOException ex) 
+        {
+             System.out.println("Impossibile accedere al file");
+        }
+    }
+    
+    public void deserializzazione(Scaffale s1)
+    {
+        String nomeFileBinario="scaffale.bin";
+        try 
+        {
+            ObjectInputStream reader=new ObjectInputStream(new FileInputStream(nomeFileBinario));
+            s1=(Scaffale)reader.readObject();
+            reader.close();
+            System.out.println("Caricamento effettuato correttamente");
+        } 
+        catch (FileNotFoundException ex) 
+        {
+            System.out.println("File non trovato");
+        } 
+        catch (IOException ex) 
+        {
+             System.out.println("Impossibile accedere al file");
+        } 
+        catch (ClassNotFoundException ex) 
+        {
+            System.out.println("Impossibile leggere il dato memorizzato");
+        }
+    }
     
     public String toString()
     {
